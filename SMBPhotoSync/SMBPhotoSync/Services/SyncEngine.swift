@@ -55,12 +55,13 @@ class SyncEngine: ObservableObject {
             // Connect to SMB
             try await smbManager.connect(credentials: credentials)
 
-            // Ensure remote directory exists
-            try await smbManager.createDirectory(atPath: credentials.remotePath)
+            // Ensure remote directory exists (no-op for share root)
+            let smbDir = credentials.smbDirectoryPath
+            try await smbManager.createDirectory(atPath: smbDir)
 
             // Scan remote directory for existing files
             progress.isScanning = true
-            let existingFiles = try await smbManager.listFiles(atPath: credentials.remotePath)
+            let existingFiles = try await smbManager.listFiles(atPath: smbDir)
             let existingFilesSet = Set(existingFiles)
             progress.isScanning = false
 
@@ -93,7 +94,7 @@ class SyncEngine: ObservableObject {
                         activeUploads += 1
 
                         group.addTask {
-                            let remotePath = "\(uploadCredentials.remotePath)/\(photo.remoteFileName)"
+                            let uploadPath = uploadCredentials.smbUploadPath(forFileName: photo.remoteFileName)
 
                             // Add to active uploads
                             await MainActor.run {
@@ -115,7 +116,7 @@ class SyncEngine: ObservableObject {
                                         try await uploadManager.connect(credentials: uploadCredentials)
 
                                         // Upload with progress callback
-                                        try await uploadManager.uploadFile(localURL: localURL, toPath: remotePath) { @Sendable bytesWritten, totalBytes in
+                                        try await uploadManager.uploadFile(localURL: localURL, toPath: uploadPath) { @Sendable bytesWritten, totalBytes in
                                             let uploadProgress = Double(bytesWritten) / Double(totalBytes)
                                             let filename = photo.remoteFileName
                                             Task { @MainActor in

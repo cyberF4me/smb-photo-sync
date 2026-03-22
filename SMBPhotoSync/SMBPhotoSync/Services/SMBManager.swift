@@ -58,13 +58,14 @@ actor SMBManager {
             throw SMBError.notConnected
         }
 
-        // Don't try to create root directory or if it already exists
-        if path == "/" {
+        let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Share root already exists; do not mkdir.
+        if trimmed.isEmpty || trimmed == "/" {
             return
         }
 
         do {
-            try await client.createDirectory(atPath: path)
+            try await client.createDirectory(atPath: trimmed)
         } catch {
             let nsError = error as NSError
             // Ignore error if directory already exists (error code 17 = EEXIST)

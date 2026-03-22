@@ -9,7 +9,7 @@ struct SettingsView: View {
     @State private var shareName: String = ""
     @State private var username: String = ""
     @State private var password: String = ""
-    @State private var remotePath: String = "Photos"
+    @State private var remotePath: String = ""
 
     @State private var showingError = false
     @State private var errorMessage = ""
@@ -41,8 +41,8 @@ struct SettingsView: View {
                         .textContentType(.password)
                 }
 
-                Section(header: Text("Remote Path"), footer: Text("Path within the share where photos will be stored")) {
-                    TextField("Remote Path", text: $remotePath)
+                Section(header: Text("Remote Path"), footer: Text("Optional subfolder inside the share. Leave empty to put files directly in the share root—for example when the share is already \\\\server\\Camera, set Share Name to Camera and leave this blank.")) {
+                    TextField("Subfolder (optional)", text: $remotePath)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
                 }
@@ -60,6 +60,18 @@ struct SettingsView: View {
                     .disabled(isTesting || !isFormValid)
                 }
                 
+                Section(header: Text("Sync from date"), footer: Text("When enabled, only photos and videos with a creation date on or after this day are included in sync.")) {
+                    Toggle("Limit to photos from date", isOn: $backgroundSync.syncFromDateEnabled)
+
+                    if backgroundSync.syncFromDateEnabled {
+                        DatePicker(
+                            "Include from",
+                            selection: $backgroundSync.syncFromDate,
+                            displayedComponents: .date
+                        )
+                    }
+                }
+
                 Section(header: Text("Background Sync"), footer: backgroundSyncFooter) {
                     Toggle("Enable Background Sync", isOn: $backgroundSync.isBackgroundSyncEnabled)
 
@@ -150,8 +162,7 @@ struct SettingsView: View {
         !serverAddress.isEmpty &&
         !shareName.isEmpty &&
         !username.isEmpty &&
-        !password.isEmpty &&
-        !remotePath.isEmpty
+        !password.isEmpty
     }
     
     private var backgroundSyncFooter: Text {

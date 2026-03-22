@@ -3,6 +3,18 @@ import BackgroundTasks
 import UIKit
 import Combine
 
+enum SyncFromDateUserDefaults {
+    static let enabledKey = "syncFromDateEnabled"
+    static let dateKey = "syncFromDate"
+
+    /// Inclusive lower bound: start of the user-chosen calendar day, or nil when filtering is off.
+    static var inclusiveStartOfDayIfEnabled: Date? {
+        guard UserDefaults.standard.bool(forKey: enabledKey),
+              let date = UserDefaults.standard.object(forKey: dateKey) as? Date else { return nil }
+        return Calendar.current.startOfDay(for: date)
+    }
+}
+
 @MainActor
 class BackgroundSyncManager: ObservableObject {
     static let shared = BackgroundSyncManager()
@@ -49,6 +61,24 @@ class BackgroundSyncManager: ObservableObject {
             defaults.set(lastSyncPhotoCount, forKey: "lastSyncPhotoCount")
         }
     }
+
+    @Published var syncFromDateEnabled: Bool {
+        didSet {
+            defaults.set(syncFromDateEnabled, forKey: SyncFromDateUserDefaults.enabledKey)
+            if oldValue != syncFromDateEnabled {
+                lastSyncPhotoCount = 0
+            }
+        }
+    }
+
+    @Published var syncFromDate: Date {
+        didSet {
+            defaults.set(syncFromDate, forKey: SyncFromDateUserDefaults.dateKey)
+            if oldValue != syncFromDate {
+                lastSyncPhotoCount = 0
+            }
+        }
+    }
     
     private init() {
         self.isBackgroundSyncEnabled = defaults.bool(forKey: "backgroundSyncEnabled")
@@ -56,6 +86,12 @@ class BackgroundSyncManager: ObservableObject {
         self.wifiOnlySync = defaults.bool(forKey: "wifiOnlySync")
         self.lastSyncDate = defaults.object(forKey: "lastSyncDate") as? Date
         self.lastSyncPhotoCount = defaults.integer(forKey: "lastSyncPhotoCount")
+        self.syncFromDateEnabled = defaults.bool(forKey: SyncFromDateUserDefaults.enabledKey)
+        if let stored = defaults.object(forKey: SyncFromDateUserDefaults.dateKey) as? Date {
+            self.syncFromDate = stored
+        } else {
+            self.syncFromDate = Calendar.current.startOfDay(for: Date())
+        }
     }
     
     // MARK: - Background Task Registration

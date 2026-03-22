@@ -37,6 +37,9 @@ class PhotoLibraryManager {
     func fetchAllPhotos() -> [PhotoAsset] {
         let fetchOptions = PHFetchOptions()
         fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
+        if let start = SyncFromDateUserDefaults.inclusiveStartOfDayIfEnabled {
+            fetchOptions.predicate = NSPredicate(format: "creationDate >= %@", start as NSDate)
+        }
 
         // Fetch both images and videos
         let assets = PHAsset.fetchAssets(with: fetchOptions)
